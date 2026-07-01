@@ -37,35 +37,6 @@ docker run -d \
   smartedge-demo:1.0
 ```
 
-## Subida a GitHub
-
-Crear el repositorio en GitHub, por ejemplo `smartedge-demo`, y despues:
-
-```bash
-cd /home/miguel/sf_docsOpenClaw/Smartedge/demo
-git init
-git add .
-git commit -m "Add Smart Edge demo container"
-git branch -M main
-git remote add origin git@github.com:<usuario-o-organizacion>/smartedge-demo.git
-git push -u origin main
-```
-
-Si el remoto usa HTTPS:
-
-```bash
-git remote add origin https://github.com/<usuario-o-organizacion>/smartedge-demo.git
-```
-
-## Publicacion como imagen reutilizable
-
-Ejemplo con GitHub Container Registry:
-
-```bash
-docker login ghcr.io
-docker build -t ghcr.io/<usuario-o-organizacion>/smartedge-demo:1.0 .
-docker push ghcr.io/<usuario-o-organizacion>/smartedge-demo:1.0
-```
 
 Ejecucion desde registry:
 
@@ -74,7 +45,7 @@ docker run -d \
   --name smartedge-demo \
   -p 80:80 \
   -e EDGE_REGION=Bilbao \
-  ghcr.io/<usuario-o-organizacion>/smartedge-demo:1.0
+  ghcr.io/miguelmsa1/smartedge-demo:1.0
 ```
 
 ## OpenStack User Data
@@ -84,9 +55,17 @@ Usa `openstack-user-data.yaml` como script de arranque cloud-init. Antes de pega
 - `IMAGE_REF`: referencia de la imagen publicada.
 - `EDGE_REGION`: nombre del nodo o region que quieras mostrar.
 
-El script esta preparado para imagenes Ubuntu/Debian con `apt`. Si publicas la imagen en GHCR como privada, rellena tambien `REGISTRY_HOST`, `REGISTRY_USER` y `REGISTRY_TOKEN` en el bloque de entorno del User Data, o el `docker pull` fallara.
 
-El workflow de GitHub Actions publica `ghcr.io/<usuario-o-organizacion>/smartedge-demo:latest` al hacer push a `main`. Si quieres una version fija, crea un tag Git como `v1.0`; el workflow publicara tambien esa etiqueta.
+## Instalacion en una VM ya levantada
+
+El fichero `install-and-run.sh` permite configurar una VM Ubuntu recien creada con un unico comando. Instala Docker segun el repositorio oficial de Docker para Ubuntu, configura UFW y lanza el contenedor.
+
+Cuando el repo este publicado en GitHub, se podra ejecutar con:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/miguelmsa1/edgebasico-demo/main/install-and-run.sh | EDGE_REGION=Bilbao bash
+```
+
 
 ## Uso con Application Endpoint Discovery
 
