@@ -10,4 +10,3 @@ services:
       - ./html:/usr/share/nginx/html:ro
       - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
     restart: unless-stopped
-
