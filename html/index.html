@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello Edge</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --blue: #0066ff;
+            --blue-dark: #003f99;
+            --ink: #ffffff;
+            --muted: #d8e5ff;
+            --panel: rgba(0, 33, 92, 0.38);
+            --line: rgba(255, 255, 255, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background:
+                radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.18), transparent 32%),
+                linear-gradient(135deg, var(--blue), var(--blue-dark));
+            color: var(--ink);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        main {
+            width: min(920px, calc(100vw - 32px));
+            display: grid;
+            gap: 30px;
+            justify-items: center;
+            text-align: center;
+        }
+
+        .logo {
+            width: clamp(130px, 18vw, 190px);
+            height: auto;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(3rem, 9vw, 6rem);
+            line-height: 0.95;
+            letter-spacing: 0;
+        }
+
+        .subtitle {
+            margin: -12px 0 0;
+            font-size: clamp(1.25rem, 3vw, 2rem);
+            color: var(--muted);
+        }
+
+        .subtitle strong {
+            color: var(--ink);
+            font-weight: 700;
+        }
+
+        .tools {
+            width: min(680px, 100%);
+            display: grid;
+            gap: 18px;
+            padding: 22px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+            backdrop-filter: blur(10px);
+        }
+
+        button {
+            justify-self: center;
+            min-height: 48px;
+            padding: 0 22px;
+            border: 0;
+            border-radius: 6px;
+            background: #ffffff;
+            color: var(--blue-dark);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.72;
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            text-align: left;
+        }
+
+        .metric {
+            min-height: 88px;
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.16);
+        }
+
+        .label {
+            margin: 0 0 8px;
+            color: var(--muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .value {
+            margin: 0;
+            overflow-wrap: anywhere;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .status {
+            min-height: 20px;
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 680px) {
+            main {
+                gap: 24px;
+            }
+
+            .tools {
+                padding: 16px;
+            }
+
+            .results {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <img class="logo" src="logo_telefonica.png" alt="Telefónica">
+        <h1>Hello Edge!</h1>
+        <p class="subtitle">Estás conectado vía internet al nodo de <strong id="edge-region">Bilbao</strong></p>
+
+        <section class="tools" aria-label="Medición de conexión">
+            <button id="run-test" type="button">Lanzar test de latencia</button>
+            <div class="results" aria-live="polite">
+                <article class="metric">
+                    <p class="label">Latencia HTTP</p>
+                    <p class="value" id="latency">Pendiente</p>
+                </article>
+                <article class="metric">
+                    <p class="label">IP detectada</p>
+                    <p class="value" id="client-ip">Pendiente</p>
+                </article>
+                <article class="metric">
+                    <p class="label">Ubicación / operador</p>
+                    <p class="value" id="network">Pendiente</p>
+                </article>
+            </div>
+            <p class="status" id="status"></p>
+        </section>
+    </main>
+
+    <script>
+        const regionEl = document.getElementById('edge-region');
+        const runButton = document.getElementById('run-test');
+        const latencyEl = document.getElementById('latency');
+        const clientIpEl = document.getElementById('client-ip');
+        const networkEl = document.getElementById('network');
+        const statusEl = document.getElementById('status');
+
+        async function loadRegion() {
+            try {
+                const response = await fetch('/edge-config.json', { cache: 'no-store' });
+                const config = await response.json();
+                if (config.region) {
+                    regionEl.textContent = config.region;
+                }
+            } catch (error) {
+                console.warn('No se pudo cargar la región EDGE_REGION', error);
+            }
+        }
+
+        function firstPublicIp(clientInfo) {
+            return clientInfo.ip || null;
+        }
+
+        function isPrivateIp(ip) {
+            return /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.|::1$|fc|fd)/i.test(ip || '');
+        }
+
+        async function measureHttpLatency(samples = 5) {
+            const timings = [];
+
+            for (let index = 0; index < samples; index += 1) {
+                const start = performance.now();
+                await fetch('/client-info.json?ts=' + Date.now() + '-' + index, { cache: 'no-store' });
+                timings.push(performance.now() - start);
+            }
+
+            timings.sort((a, b) => a - b);
+            return Math.round(timings[Math.floor(timings.length / 2)]);
+        }
+
+        async function lookupNetwork(ip) {
+            const target = ip && !isPrivateIp(ip) ? '/' + encodeURIComponent(ip) : '';
+            const response = await fetch('https://ipwho.is' + target, { cache: 'no-store' });
+            const data = await response.json();
+
+            if (data.success === false) {
+                return null;
+            }
+
+                return {
+                ip: data.ip,
+                city: data.city,
+                country: data.country,
+                isp: data.connection && (data.connection.isp || data.connection.org)
+            };
+        }
+
+        async function runTest() {
+            runButton.disabled = true;
+            statusEl.textContent = 'Midiendo conexión contra el nodo web...';
+            latencyEl.textContent = 'Midiendo...';
+            clientIpEl.textContent = 'Detectando...';
+            networkEl.textContent = 'Consultando...';
+
+            try {
+                const [latency, clientResponse] = await Promise.all([
+                    measureHttpLatency(),
+                    fetch('/client-info.json', { cache: 'no-store' })
+                ]);
+
+                const clientInfo = await clientResponse.json();
+                const ip = firstPublicIp(clientInfo);
+
+                latencyEl.textContent = latency + ' ms';
+                clientIpEl.textContent = ip || 'No disponible';
+
+                const network = await lookupNetwork(ip);
+                if (network) {
+                    if (!ip && network.ip) {
+                        clientIpEl.textContent = network.ip;
+                    }
+                    const place = [network.city, network.country].filter(Boolean).join(', ');
+                    networkEl.textContent = [place, network.isp].filter(Boolean).join(' · ') || 'No disponible';
+                } else {
+                    networkEl.textContent = 'No disponible';
+                }
+
+                statusEl.textContent = 'Test completado.';
+            } catch (error) {
+                console.error(error);
+                statusEl.textContent = 'No se pudo completar el test.';
+                latencyEl.textContent = 'Error';
+                clientIpEl.textContent = 'Error';
+                networkEl.textContent = 'Error';
+            } finally {
+                runButton.disabled = false;
+            }
+        }
+
+        loadRegion();
+        runButton.addEventListener('click', runTest);
+    </script>
+</body>
+</html>
+

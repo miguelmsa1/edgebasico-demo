@@ -1,0 +1,22 @@
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location = /edge-config.json {
+        default_type application/json;
+        add_header Cache-Control "no-store";
+        return 200 '{"region":"${EDGE_REGION}"}';
+    }
+
+    location = /client-info.json {
+        default_type application/json;
+        add_header Cache-Control "no-store";
+        return 200 '{"ip":"$remote_addr"}';
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
