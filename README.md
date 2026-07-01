@@ -24,7 +24,7 @@ docker run -d \
   --name smartedge-demo \
   -p 80:80 \
   -e EDGE_REGION=Bilbao \
-  smartedge-demo:1.0
+  smartedge-demo:latest
 ```
 
 Para cambiar el nodo no hace falta reconstruir la imagen:
@@ -38,14 +38,14 @@ docker run -d \
 ```
 
 
-Ejecucion desde registry:
+## Ejecucion desde registry:
 
 ```bash
 docker run -d \
   --name smartedge-demo \
   -p 80:80 \
   -e EDGE_REGION=Bilbao \
-  ghcr.io/miguelmsa1/smartedge-demo:1.0
+  ghcr.io/miguelmsa1/smartedge-demo:latest
 ```
 
 ## OpenStack User Data
