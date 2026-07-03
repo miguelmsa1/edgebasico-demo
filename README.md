@@ -10,6 +10,7 @@ La imagen incluye:
 - Endpoint `/edge-config.json` para exponer la region configurada.
 - Endpoint `/client-info.json` para mostrar la IP que ve Nginx.
 - Test de latencia HTTP navegador -> nodo web mediante una peticion minima a `/latency.txt`.
+- Comparativa visual de latencia contra hiperescalares. Azure mide contra `https://tmbapp.blob.core.windows.net/demosmartedge/latency.txt`; AWS y GCP quedan marcados como pendientes.
 
 ## Construccion local
 
@@ -89,5 +90,6 @@ En una version puramente MPLS, la geolocalizacion por `ipwho.is` puede no funcio
 ## Limitaciones
 
 - La latencia medida es HTTP navegador -> nodo web contra `/latency.txt`. No es ping ICMP.
+- La comparativa contra Azure usa una peticion HTTP GET minima con cache deshabilitada. Se muestra el porcentaje de mejora de Smart Edge cuando la latencia local es menor que la de Azure.
 - La IP mostrada es la que ve Nginx. Si hay proxy o balanceador delante, configura cabeceras de IP real en Nginx y rangos de confianza.
 - La geolocalizacion/operador depende de un servicio externo llamado desde el navegador: `ipwho.is`.

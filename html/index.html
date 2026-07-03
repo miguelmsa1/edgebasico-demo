@@ -129,6 +129,69 @@
             font-size: 0.95rem;
         }
 
+        .cloud-compare {
+            display: grid;
+            gap: 10px;
+            padding-top: 4px;
+            border-top: 1px solid var(--line);
+        }
+
+        .compare-title {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .cloud-results {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .cloud-card {
+            min-height: 74px;
+            display: grid;
+            grid-template-columns: 32px minmax(0, 1fr);
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.12);
+            text-align: left;
+        }
+
+        .cloud-card img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+        }
+
+        .cloud-name {
+            margin: 0 0 3px;
+            color: var(--muted);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .cloud-latency {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .cloud-gain {
+            grid-column: 1 / -1;
+            margin: -2px 0 0;
+            color: #ffffff;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
         @media (max-width: 680px) {
             main {
                 gap: 24px;
@@ -139,6 +202,10 @@
             }
 
             .results {
+                grid-template-columns: 1fr;
+            }
+
+            .cloud-results {
                 grid-template-columns: 1fr;
             }
         }
@@ -167,6 +234,35 @@
                 </article>
             </div>
             <p class="status" id="status"></p>
+            <div class="cloud-compare" aria-label="Comparativa con hiperescalares">
+                <p class="compare-title">Comparativa con hiperescalares</p>
+                <div class="cloud-results">
+                    <article class="cloud-card">
+                        <img src="/logo_azure.svg" alt="Azure">
+                        <div>
+                            <p class="cloud-name">Azure</p>
+                            <p class="cloud-latency" id="azure-latency">Pendiente</p>
+                        </div>
+                        <p class="cloud-gain" id="azure-gain">Pendiente</p>
+                    </article>
+                    <article class="cloud-card">
+                        <img src="/logo_gcp.svg" alt="Google Cloud">
+                        <div>
+                            <p class="cloud-name">GCP</p>
+                            <p class="cloud-latency">Pte.</p>
+                        </div>
+                        <p class="cloud-gain">Pte.</p>
+                    </article>
+                    <article class="cloud-card">
+                        <img src="/amazon-web-services.png" alt="AWS">
+                        <div>
+                            <p class="cloud-name">AWS</p>
+                            <p class="cloud-latency">Pte.</p>
+                        </div>
+                        <p class="cloud-gain">Pte.</p>
+                    </article>
+                </div>
+            </div>
         </section>
     </main>
 
@@ -177,6 +273,9 @@
         const clientIpEl = document.getElementById('client-ip');
         const networkEl = document.getElementById('network');
         const statusEl = document.getElementById('status');
+        const azureLatencyEl = document.getElementById('azure-latency');
+        const azureGainEl = document.getElementById('azure-gain');
+        const azureLatencyUrl = 'https://tmbapp.blob.core.windows.net/demosmartedge/latency.txt';
 
         async function loadRegion() {
             try {
@@ -204,6 +303,23 @@
             return Math.round(performance.now() - start);
         }
 
+        async function measureExternalLatency(url) {
+            const separator = url.includes('?') ? '&' : '?';
+            const start = performance.now();
+            await fetch(url + separator + 'ts=' + Date.now(), { cache: 'no-store', mode: 'no-cors' });
+            return Math.round(performance.now() - start);
+        }
+
+        function fasterText(edgeLatency, cloudLatency) {
+            if (!Number.isFinite(edgeLatency) || !Number.isFinite(cloudLatency) || cloudLatency <= 0) {
+                return 'Pendiente';
+            }
+            if (edgeLatency >= cloudLatency) {
+                return 'Edge no mejora';
+            }
+            return Math.round(((cloudLatency - edgeLatency) / cloudLatency) * 100) + '% más rápido';
+        }
+
         async function lookupNetwork(ip) {
             const target = ip && !isPrivateIp(ip) ? '/' + encodeURIComponent(ip) : '';
             const response = await fetch('https://ipwho.is' + target, { cache: 'no-store' });
@@ -227,10 +343,22 @@
             latencyEl.textContent = 'Midiendo...';
             clientIpEl.textContent = 'Detectando...';
             networkEl.textContent = 'Consultando...';
+            azureLatencyEl.textContent = 'Midiendo...';
+            azureGainEl.textContent = 'Calculando...';
 
             try {
                 const latency = await measureHttpLatency();
                 latencyEl.textContent = latency + ' ms';
+
+                try {
+                    const azureLatency = await measureExternalLatency(azureLatencyUrl);
+                    azureLatencyEl.textContent = azureLatency + ' ms';
+                    azureGainEl.textContent = fasterText(latency, azureLatency);
+                } catch (error) {
+                    console.warn('No se pudo medir latencia contra Azure', error);
+                    azureLatencyEl.textContent = 'Error';
+                    azureGainEl.textContent = 'No disponible';
+                }
 
                 const clientResponse = await fetch('/client-info.json', { cache: 'no-store' });
                 const clientInfo = await clientResponse.json();
