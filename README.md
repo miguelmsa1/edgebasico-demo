@@ -9,7 +9,7 @@ La imagen incluye:
 - Region/nodo configurable con `EDGE_REGION`.
 - Endpoint `/edge-config.json` para exponer la region configurada.
 - Endpoint `/client-info.json` para mostrar la IP que ve Nginx.
-- Test de latencia HTTP navegador -> nodo web.
+- Test de latencia HTTP navegador -> nodo web mediante una peticion minima a `/latency.txt`.
 
 ## Construccion local
 
@@ -24,7 +24,7 @@ docker run -d \
   --name smartedge-demo \
   -p 80:80 \
   -e EDGE_REGION=Bilbao \
-  smartedge-demo:latest
+  smartedge-demo:1.0
 ```
 
 Para cambiar el nodo no hace falta reconstruir la imagen:
@@ -38,14 +38,14 @@ docker run -d \
 ```
 
 
-## Ejecucion desde registry:
+Ejecucion desde registry:
 
 ```bash
 docker run -d \
   --name smartedge-demo \
   -p 80:80 \
   -e EDGE_REGION=Bilbao \
-  ghcr.io/miguelmsa1/smartedge-demo:latest
+  ghcr.io/miguelmsa1/smartedge-demo:1.0
 ```
 
 ## OpenStack User Data
@@ -63,7 +63,13 @@ El fichero `install-and-run.sh` permite configurar una VM Ubuntu recien creada c
 Cuando el repo este publicado en GitHub, se podra ejecutar con:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/miguelmsa1/edgebasico-demo/main/install-and-run.sh | EDGE_REGION=Bilbao bash
+curl -fsSL https://raw.githubusercontent.com/miguelmsa1/edgebasico-demo/main/install-and-run.sh | sudo EDGE_REGION=Bilbao bash
+```
+
+Para indicar imagen o puerto explicitamente:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/miguelmsa1/edgebasico-demo/main/install-and-run.sh | sudo IMAGE_REF=ghcr.io/miguelmsa1/edgebasico-demo:latest EDGE_REGION=Bilbao HOST_PORT=80 bash
 ```
 
 
@@ -82,6 +88,6 @@ En una version puramente MPLS, la geolocalizacion por `ipwho.is` puede no funcio
 
 ## Limitaciones
 
-- La latencia medida es HTTP navegador -> nodo web. No es ping ICMP.
+- La latencia medida es HTTP navegador -> nodo web contra `/latency.txt`. No es ping ICMP.
 - La IP mostrada es la que ve Nginx. Si hay proxy o balanceador delante, configura cabeceras de IP real en Nginx y rangos de confianza.
 - La geolocalizacion/operador depende de un servicio externo llamado desde el navegador: `ipwho.is`.

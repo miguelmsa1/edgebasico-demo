@@ -198,17 +198,10 @@
             return /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.|::1$|fc|fd)/i.test(ip || '');
         }
 
-        async function measureHttpLatency(samples = 5) {
-            const timings = [];
-
-            for (let index = 0; index < samples; index += 1) {
-                const start = performance.now();
-                await fetch('/client-info.json?ts=' + Date.now() + '-' + index, { cache: 'no-store' });
-                timings.push(performance.now() - start);
-            }
-
-            timings.sort((a, b) => a - b);
-            return Math.round(timings[Math.floor(timings.length / 2)]);
+        async function measureHttpLatency() {
+            const start = performance.now();
+            await fetch('/latency.txt?ts=' + Date.now(), { cache: 'no-store' });
+            return Math.round(performance.now() - start);
         }
 
         async function lookupNetwork(ip) {
@@ -236,15 +229,13 @@
             networkEl.textContent = 'Consultando...';
 
             try {
-                const [latency, clientResponse] = await Promise.all([
-                    measureHttpLatency(),
-                    fetch('/client-info.json', { cache: 'no-store' })
-                ]);
+                const latency = await measureHttpLatency();
+                latencyEl.textContent = latency + ' ms';
 
+                const clientResponse = await fetch('/client-info.json', { cache: 'no-store' });
                 const clientInfo = await clientResponse.json();
                 const ip = firstPublicIp(clientInfo);
 
-                latencyEl.textContent = latency + ' ms';
                 clientIpEl.textContent = ip || 'No disponible';
 
                 const network = await lookupNetwork(ip);

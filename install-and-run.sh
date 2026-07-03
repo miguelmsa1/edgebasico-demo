@@ -9,7 +9,9 @@ CONTAINER_NAME="${CONTAINER_NAME:-smartedge-demo}"
 HOST_PORT="${HOST_PORT:-80}"
 
 if [ "$(id -u)" -ne 0 ]; then
-  exec sudo -E bash "$0" "$@"
+  echo "Run this installer as root. Recommended one-line usage:" >&2
+  echo "curl -fsSL https://raw.githubusercontent.com/miguelmsa1/edgebasico-demo/main/install-and-run.sh | sudo EDGE_REGION=Bilbao bash" >&2
+  exit 1
 fi
 
 if ! command -v apt-get >/dev/null 2>&1; then
